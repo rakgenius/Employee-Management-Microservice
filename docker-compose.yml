@@ -1,0 +1,89 @@
+version: '3.3'
+services:
+  config-server:
+    container_name: config-server
+    build: ./config-server
+    image: config-server:latest
+    expose:
+      - 8888
+    ports:
+      - 8888:8888
+    networks:
+      - emp-network
+
+  eureka-server:
+    container_name: eureka-server
+    build: ./eureka-server
+    image: eureka-server:latest
+    expose:
+      - 8761
+    ports:
+      - 8761:8761
+    networks:
+      - emp-network
+
+  employee-search-service:
+    container_name: employee-search-service
+    build: ./employee-search-service
+    image: employee-search-service:latest
+    environment:
+            SPRING_APPLICATION_JSON: '{"spring": {"cloud": {"config": {"uri": "http://config-server:8888"}}}}'
+    entrypoint: /EmployeeSearch-Entrypoint.sh
+    expose:
+      - 9092
+    ports:
+      - 9092:9092
+    networks:
+      - emp-network
+    links:
+      - config-server:config-server
+      - eureka-server:eureka-server
+    depends_on:
+      - config-server
+      - eureka-server
+    logging:
+      driver: json-file
+
+  employee-dashboard-service:
+    container_name: employee-dashboard-service
+    build: ./employee-dashboard-service
+    image: employee-dashboard-service:latest
+    environment:
+            SPRING_APPLICATION_JSON: '{"spring": {"cloud": {"config": {"uri": "http://config-server:8888"}}}}'
+    entrypoint: /Employeedashboard-Entrypoint.sh
+    expose:
+      - 8282
+    ports:
+      - 8282:8282
+    networks:
+      - emp-network
+    links:
+      - config-server:config-server
+      - eureka-server:eureka-server
+    depends_on:
+      - config-server
+      - eureka-server
+    logging:
+      driver: json-file
+
+  
+  api-gateway:
+    container_name: api-gateway
+    build: ./api-gateway
+    image: api-gateway:latest
+    expose:
+      - 5000
+    ports:
+      - 5000:5000
+    networks:
+      - emp-network
+    links:
+      - eureka-server:eureka-server
+    depends_on:
+      - eureka-server
+    logging:
+      driver: json-file
+
+networks:
+  emp-network:
+    driver: bridge
